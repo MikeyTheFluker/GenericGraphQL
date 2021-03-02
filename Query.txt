@@ -1,0 +1,15 @@
+﻿{
+  workOrders{
+    number
+    description
+ 
+    assignments{
+        number
+    }
+
+    laborCharges{
+        number,
+        quantity
+    }
+   }
+}
