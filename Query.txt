@@ -1,5 +1,5 @@
 ﻿{
-  workOrders{
+  WorkOrders{
     number
     description
  
@@ -8,8 +8,7 @@
     }
 
     laborCharges{
-        number,
-        quantity
+        number
     }
    }
 }
