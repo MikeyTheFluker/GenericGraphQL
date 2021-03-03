@@ -53,7 +53,6 @@ namespace GenericGraphQL
                 ThrowOnUnhandledException = true,
                 Schema = schema,
                 Query = queryToRun,
-
                 UserContext = new Dictionary<string, object>
                 {
                     {nameof(IDbConnection), connection}

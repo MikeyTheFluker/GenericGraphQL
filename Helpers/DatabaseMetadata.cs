@@ -46,7 +46,7 @@ namespace GenericGraphQL.Helpers
             var metaTables = new List<EntityMetadata>();
             var entityTypes = _dbContext.Model.GetEntityTypes();
 
-
+            //entityTypes = entityTypes.Where(d => d.Name != "AdjustmentTypes");
             foreach (var entityType in entityTypes)
             {
                 var tableName = entityType.GetTableName();
@@ -72,13 +72,19 @@ namespace GenericGraphQL.Helpers
 
         private IReadOnlyList<ColumnMetadata> GetColumnsMetadata(IEntityType entityType, string tableName)
         {
-            var tableColumns = entityType.GetProperties().Select(propertyType => new ColumnMetadata {ColumnName = propertyType.GetColumnName(), DataType = propertyType.GetColumnType()}).ToList();
+            var tableColumns = entityType.GetProperties().Select(propertyType => new ColumnMetadata 
+                {ColumnName = propertyType.GetColumnName(), 
+                    DataType = propertyType.GetColumnType()}).ToList();
             var navigations = entityType.GetNavigations();
             foreach (var nav in navigations)
             {
                 var parentFk = nav.ForeignKey.Properties.FirstOrDefault();
                 var childFk = nav.ForeignKey.PrincipalKey.Properties.FirstOrDefault();
 
+                var inverse = nav.FindInverse();
+                var name1 = childFk.Name;
+                var name2 = inverse.DeclaringEntityType.FindPrimaryKey();
+                
                 var isOneToMany = nav.ClrType.IsGenericType &&
                                   nav.ClrType.GetGenericTypeDefinition() == typeof(ICollection<>);
                 if (isOneToMany)
@@ -105,9 +111,9 @@ namespace GenericGraphQL.Helpers
                         FkReference = true,
                         ParentFkName = parentFk?.Name,
                         ChildFkName = childFk?.Name,
-                        IsOneToManyRelationship = isOneToMany,
-                        TargetTableName = tableEntityLookup[nav.ForeignKey.DeclaringEntityType.ClrType.Name],
-                        TargetEntityName = nav.ForeignKey.PrincipalEntityType.ClrType.Name
+                        IsOneToManyRelationship = false,
+                        TargetTableName = tableEntityLookup[inverse.DeclaringEntityType.ClrType.Name],  //inverse
+                        TargetEntityName = inverse.DeclaringEntityType.ClrType.Name
                     });
                 }
                 

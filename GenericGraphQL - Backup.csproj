@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -19,11 +19,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="GraphQL">
-        <HintPath>..\graphql-dotnet-master\graphql-dotnet-master\src\GraphQL\bin\Debug\netstandard2.0\GraphQL.dll</HintPath>
-      </Reference>
       <Reference Include="JoinMonster">
-        <HintPath>..\join-monster-dotnet-master\src\JoinMonster\bin\Debug\netstandard2.0\JoinMonster.dll</HintPath>
+        <HintPath>..\join-monster-dotnet-master\src\JoinMonster\obj\Debug\netstandard2.0\JoinMonster.dll</HintPath>
       </Reference>
     </ItemGroup>
 

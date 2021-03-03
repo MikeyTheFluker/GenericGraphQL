@@ -49,9 +49,33 @@ namespace GenericGraphQL
 
             var dbMetadata = new DatabaseMetadata(dbContext);
             var allEntities = dbMetadata.GetEntityMetadatas().ToList();
-
+            EntityType.EntitiesAlreadyCreated = new Dictionary<string, EntityType>();
             var feeder = new EntityFeeder(allEntities);
             var entityToMap = feeder.GetNextEntity();
+            do
+            {
+                var tableType = new EntityType(entityToMap);
+                var newListType = new ListGraphType(tableType);
+
+                var newField = new FieldType
+                {
+                    Name = entityToMap.TableName,
+                    Type = typeof(ListGraphType<Entity>),
+                    ResolvedType = newListType,
+                    Resolver =
+                        new FuncFieldResolver<object, object>(Resolve), //new MyFieldResolver(metaTable, dbContext),
+                    Arguments = new QueryArguments(
+                        tableType.TableArgs
+                    )
+                };
+                newField.SqlWhere(ApplyParameters);
+                //AddField(newField);
+                entityToMap = feeder.GetNextEntity();
+            } while (entityToMap != null);
+
+            //do it again
+            feeder = new EntityFeeder(allEntities);
+            entityToMap = feeder.GetNextEntity();
             do
             {
                 var tableType = new EntityType(entityToMap);
@@ -73,7 +97,18 @@ namespace GenericGraphQL
                 entityToMap = feeder.GetNextEntity();
             } while (entityToMap != null);
 
+            //ResolveOneToManyColumnRelationships();
         }
+
+        //private void ResolveOneToManyColumnRelationships()
+        //{
+        //    Fields.ToList().ForEach(d =>
+        //    {
+        //        var x = d.Arguments
+        //            .Where(a => a.Type == typeof(ListGraphType<EntityType>) && a.ResolvedType == null);
+        //        x.ToList().ForEach(a => a.ResolvedType = EntityType.EntitiesAlreadyCreated[a.Description]);
+        //    });
+        //}
 
         private void ApplyParameters(WhereBuilder where, IReadOnlyDictionary<string, object> args, IResolveFieldContext _, SqlTable __)
         {

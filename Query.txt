@@ -1,13 +1,9 @@
 ﻿{
-  WorkOrders{
+  workOrders{
     number
     description
  
-    assignments{
-        number
-    }
-
-    laborCharges{
+    LaborCharges{
         number
     }
    }
