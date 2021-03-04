@@ -56,6 +56,10 @@ namespace GenericGraphQL
                 UserContext = new Dictionary<string, object>
                 {
                     {nameof(IDbConnection), connection}
+                },
+                UnhandledExceptionDelegate = (ctx) =>
+                {
+                    var e = ctx.Exception;
                 }
             };
             var result = await new DocumentExecuter().ExecuteAsync(

@@ -15,11 +15,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GenericGraphQL
 {
-    public sealed class GenericQuery : ObjectGraphType<object>
+    public sealed class GenericQuery : ObjectGraphType<EntityType>
     {
  
         public GenericQuery(DbContext dbContext, JoinMonsterExecuter jm)
         {
+            FieldType BuildEntity(EntityMetadata entityMetadata)
+            {
+                var tableType = new EntityType(entityMetadata);
+                var newListType = new ListGraphType(tableType);
+
+                var newField = new FieldType
+                {
+                    Name = entityMetadata.TableName,
+                    Type = typeof(ListGraphType<Entity>),
+                    ResolvedType = newListType,
+                    Resolver =
+                        new FuncFieldResolver<object, object>(Resolve), //new MyFieldResolver(metaTable, dbContext),
+                    Arguments = new QueryArguments(
+                        tableType.TableArgs
+                    )
+                };
+               
+                return newField;
+            }
+
             Name = "MyQuery";
 
             object Resolve(IResolveFieldContext<object> context) =>
@@ -54,48 +74,23 @@ namespace GenericGraphQL
             var entityToMap = feeder.GetNextEntity();
             do
             {
-                var tableType = new EntityType(entityToMap);
-                var newListType = new ListGraphType(tableType);
-
-                var newField = new FieldType
-                {
-                    Name = entityToMap.TableName,
-                    Type = typeof(ListGraphType<Entity>),
-                    ResolvedType = newListType,
-                    Resolver =
-                        new FuncFieldResolver<object, object>(Resolve), //new MyFieldResolver(metaTable, dbContext),
-                    Arguments = new QueryArguments(
-                        tableType.TableArgs
-                    )
-                };
-                newField.SqlWhere(ApplyParameters);
-                //AddField(newField);
+                var newField = BuildEntity(entityToMap);
+                // newField.SqlWhere(ApplyParameters);
+                // AddField(newField);
                 entityToMap = feeder.GetNextEntity();
             } while (entityToMap != null);
 
-            //do it again
-            feeder = new EntityFeeder(allEntities);
-            entityToMap = feeder.GetNextEntity();
+
+            // //do it again
+            var f = new ReverseEntityFeeder(allEntities);
+            var e = f.GetNextEntity();
             do
             {
-                var tableType = new EntityType(entityToMap);
-                var newListType = new ListGraphType(tableType);
-
-                var newField = new FieldType
-                {
-                    Name = entityToMap.TableName,
-                    Type = typeof(ListGraphType<Entity>),
-                    ResolvedType = newListType,
-                    Resolver =
-                        new FuncFieldResolver<object, object>(Resolve), //new MyFieldResolver(metaTable, dbContext),
-                    Arguments = new QueryArguments(
-                        tableType.TableArgs
-                    )
-                };
+                var newField = BuildEntity(e);
                 newField.SqlWhere(ApplyParameters);
                 AddField(newField);
-                entityToMap = feeder.GetNextEntity();
-            } while (entityToMap != null);
+                e = f.GetNextEntity();
+            } while (e != null);
 
             //ResolveOneToManyColumnRelationships();
         }

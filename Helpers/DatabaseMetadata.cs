@@ -96,7 +96,7 @@ namespace GenericGraphQL.Helpers
                         FkReference = true,
                         ParentFkName = childFk?.Name,           //Flip
                         ChildFkName = parentFk?.Name,
-                        IsOneToManyRelationship = isOneToMany,
+                        IsOneToManyRelationship = true,
                         SourceTableName = tableName,
                         TargetTableName = tableEntityLookup[nav.ForeignKey.DeclaringEntityType.ClrType.Name],  //Enity Name, needs to be Table Name, maybe lookup
                         TargetEntityName = nav.ForeignKey.DeclaringEntityType.ClrType.Name

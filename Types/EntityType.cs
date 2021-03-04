@@ -9,14 +9,36 @@ using JoinMonster.Builders;
 using JoinMonster.Configs;
 using JoinMonster.Data;
 using JoinMonster.Language.AST;
+using System.Linq;
 
 namespace GenericGraphQL.Types
 {
 
-    public class EntityType : ObjectGraphType<object>
+    public class EntityType : ObjectGraphType<Entity>
     {
         public static Dictionary<string, EntityType> EntitiesAlreadyCreated;
-        private SQLiteDialect _dialect;
+        private readonly SQLiteDialect _dialect;
+
+        public EntityType(EntityType entityType, IEnumerable<FieldType> fields)
+        {
+            Name = entityType.Name;
+            this.SqlTable(Name, "id");
+            _dialect = new SQLiteDialect();
+
+            fields.ToList().ForEach(f =>
+            {
+                FillArgs(f.Name);
+                this.AddField(f);
+            });
+
+            TableArgs.Add(new QueryArgument<IdGraphType> { Name = "number" });
+            TableArgs.Add(new QueryArgument<IntGraphType> { Name = "first" });
+            TableArgs.Add(new QueryArgument<IntGraphType> { Name = "offset" });
+            TableArgs.Add(new QueryArgument<StringGraphType> { Name = "includes" });
+
+
+        }
+
         public EntityType(EntityMetadata tableMetadata)
         {
             Name = tableMetadata.TableName;
@@ -32,10 +54,26 @@ namespace GenericGraphQL.Types
             TableArgs.Add(new QueryArgument<IntGraphType> { Name = "first" });
             TableArgs.Add(new QueryArgument<IntGraphType> { Name = "offset" });
             TableArgs.Add(new QueryArgument<StringGraphType> { Name = "includes" });
-            if (!EntitiesAlreadyCreated.ContainsKey(tableMetadata.TableName))
+            if (EntitiesAlreadyCreated.ContainsKey(tableMetadata.TableName))
             {
-                EntitiesAlreadyCreated.Add(tableMetadata.TableName, this);
+                EntitiesAlreadyCreated.Remove(tableMetadata.TableName);
             }
+
+            EntityType x = this;
+            var y = (EntityType)this.Fields.FirstOrDefault(f => !string.IsNullOrEmpty(f.Description))?.ResolvedType;
+            if (y != null)
+            {
+                var yy = (EntityType)y.Fields.FirstOrDefault(f => !string.IsNullOrEmpty(f.Description))?.ResolvedType;
+                var zz = yy?.Fields.FirstOrDefault(f => f.Name == tableMetadata.EntityName);
+                if (zz != null)
+                {
+                    var list = yy.Fields.Where(f => f.Name != tableMetadata.EntityName);
+                    x = new EntityType(this, list);
+                }
+            }
+            
+            EntitiesAlreadyCreated.Add(tableMetadata.TableName, x);
+
         }
 
         public QueryArguments TableArgs
