@@ -15,11 +15,15 @@ namespace GenericGraphQL.Types
 
     public class EntityType : ObjectGraphType<object>
     {
+        public static List<EntityLevel> EntitiesWeWorkOn;
         public static Dictionary<string, EntityType> EntitiesAlreadyCreated;
+
+        private EntityLevel _entityLevel;
         private SQLiteDialect _dialect;
-        public EntityType(EntityMetadata tableMetadata)
+        public EntityType(EntityMetadata tableMetadata, EntityLevel level = null)
         {
             Name = tableMetadata.TableName;
+            _entityLevel = level;
             this.SqlTable(tableMetadata.TableName, "id");
             foreach (var tableColumn in tableMetadata.Columns)
             {
@@ -80,44 +84,49 @@ namespace GenericGraphQL.Types
             var graphQLType = type.GetGraphTypeFromType(true);
 
             FieldType columnField;
+            var targetEntityLevel = EntitiesWeWorkOn.GetLevel(columnMetadata.TargetEntityName);
+            var isThisAnEntityInOurList = EntitiesWeWorkOn.Select(d => d.Name).Contains(columnMetadata.TargetEntityName);
+            var isItLowerLevelThanUs = _entityLevel.Level < targetEntityLevel;
             if (columnMetadata.FkReference)
             {
-                if (columnMetadata.IsOneToManyRelationship)
+                if (isThisAnEntityInOurList && isItLowerLevelThanUs)
                 {
-                    columnField = new FieldType
+                    if (columnMetadata.IsOneToManyRelationship)
                     {
-                        Name = columnName,
-                        Description = columnMetadata.TargetTableName,       //Using description to store the key to the dictionary for later
-                        Type = typeof(ListGraphType<EntityType>),
-                        ResolvedType = EntitiesAlreadyCreated.ContainsKey(columnMetadata.TargetTableName) 
-                            ? EntitiesAlreadyCreated[columnMetadata.TargetTableName] : null
-                    };
-                    columnField.SqlJoin(delegate(JoinBuilder @join, IReadOnlyDictionary<string, object> arguments,
-                        IResolveFieldContext context, SqlTable node)
+                        columnField = new FieldType
+                        {
+                            Name = columnName,
+                            Description = columnMetadata.TargetTableName,       //Using description to store the key to the dictionary for later
+                            Type = typeof(ListGraphType<EntityType>),
+                            ResolvedType = EntitiesAlreadyCreated.ContainsKey(columnMetadata.TargetTableName)
+                                ? EntitiesAlreadyCreated[columnMetadata.TargetTableName] : null
+                        };
+                        columnField.SqlJoin(delegate (JoinBuilder @join, IReadOnlyDictionary<string, object> arguments,
+                            IResolveFieldContext context, SqlTable node)
+                        {
+                            @join.Raw(
+                                $"{_dialect.Quote(columnName)}.{_dialect.Quote(columnMetadata.ChildFkName)} = {_dialect.Quote(columnMetadata.SourceTableName)}.{_dialect.Quote(columnMetadata.ParentFkName)}",
+                                null,
+                                $"LEFT JOIN {_dialect.Quote(columnMetadata.TargetTableName)} as {_dialect.Quote(columnName)}");
+                        });
+                        //columnField.Resolver = new Helpers.NameFieldResolver();
+                        AddField(columnField);
+                    }
+                    else
                     {
-                        @join.Raw(
-                            $"{_dialect.Quote(columnName)}.{_dialect.Quote(columnMetadata.ChildFkName)} = {_dialect.Quote(columnMetadata.SourceTableName)}.{_dialect.Quote(columnMetadata.ParentFkName)}",
-                            null,
-                            $"LEFT JOIN {_dialect.Quote(columnMetadata.TargetTableName)} as {_dialect.Quote(columnName)}");
-                    });
-                    //columnField.Resolver = new Helpers.NameFieldResolver();
-                    AddField(columnField);
+                        columnField = new FieldType
+                        {
+                            Name = columnMetadata.ParentFkName + "Fk", // columnName.Replace("Navigation", ""),
+                            Type = typeof(EntityType),
+                            ResolvedType = EntitiesAlreadyCreated.ContainsKey(columnMetadata.TargetTableName)
+                                ? EntitiesAlreadyCreated[columnMetadata.TargetTableName] : null
+                        };
+                        columnField.SqlJoin((join, arguments, context, node) => join.On(columnMetadata.ParentFkName, columnMetadata.ChildFkName));
+                        columnField.SqlColumn();
+                        //columnField.Resolver = new Helpers.NameFieldResolver();
+                        AddField(columnField);
+                    }
                 }
-                else
-                {
-                    columnField = new FieldType
-                    {
-                        Name = columnName,
-                        Type = typeof(EntityType),
-                        ResolvedType = EntitiesAlreadyCreated.ContainsKey(columnMetadata.TargetTableName)
-                            ? EntitiesAlreadyCreated[columnMetadata.TargetTableName] : null
-                    };
-                    columnField.SqlJoin((join, arguments, context, node) => join.On(columnMetadata.ParentFkName, columnMetadata.ChildFkName));
-                    columnField.SqlColumn();
-                    //columnField.Resolver = new Helpers.NameFieldResolver();
-                    AddField(columnField);
-                }
-                
             }
             else
             {

@@ -3,8 +3,14 @@
     number
     description
  
-    LaborCharges{
+    laborCharges(id: 1){
         number
     }
-   }
+
+    assignments{
+        number
+
+
+    }
+  }
 }

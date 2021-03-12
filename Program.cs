@@ -35,11 +35,15 @@ namespace GenericGraphQL
                 return Activator.CreateInstance(type);
             });
 
+            var queryToRun = await File.ReadAllTextAsync("query.txt");
+
+            GenericQuery.QueryToRun = queryToRun;
+
             var schema = new TargetDbSchema(serviceProvider);
             Console.WriteLine("Built a schema");
 
             
-            var queryToRun = await File.ReadAllTextAsync("query.txt");
+ 
 
             Console.WriteLine("Running GraphQL Query" );
             Console.WriteLine(queryToRun);

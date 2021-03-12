@@ -1,1 +1,1 @@
-﻿Server=localhost; Database=X4.BasicMvpAwesome; User=sa;Password=Welcome1$
+﻿Server=localhost; Database=X4.HarvestHealth; User=sa;Password=Welcome1$
