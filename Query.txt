@@ -3,12 +3,17 @@
     number
     description
  
-    laborCharges(id: 1){
+    laborCharges(id: 1; this is crap){
         number
     }
 
     assignments{
         number
+
+        assignedBy
+        {
+            number
+        }
 
 
     }

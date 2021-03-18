@@ -49,7 +49,6 @@ namespace GenericGraphQL
                     return await command.ExecuteReaderAsync();
                 });
 
-            var regex = new Regex(@"(\s+)(\w+)(?:\(.*?\))?({.*?(?:\1)})", RegexOptions.Singleline);
 
             EntityType.EntitiesWeWorkOn = new List<EntityLevel>
             {
@@ -58,57 +57,36 @@ namespace GenericGraphQL
                 //new EntityLevel{ Name = "LaborCharge",Level = 2},
                 //new EntityLevel{ Name = "WorkOrder",Level = 1}
             };
-            int level = 1;
-            if (regex.IsMatch(QueryToRun))
-            {
-
-                var x = regex.Match(QueryToRun);
-                var entity = x.Groups[2];
-                EntityType.EntitiesWeWorkOn.Add(new EntityLevel{ Name = entity.Value, Level = level });
-                var insideGroup = x.Groups[3].Value;
-                if (regex.IsMatch(insideGroup))
-                {
-                    x = regex.Match(insideGroup);
-                    var g = x.Groups;
-
-                    var secondLayer = insideGroup.Replace(x.Groups[0].Value, string.Empty);
-
-                    if (regex.IsMatch(secondLayer))
-                    {
-                        x = regex.Match(secondLayer);
-                        var gg = x.Groups[2];
-                    }
-                }
-
-                
-            }
-
-            var dbMetadata = new DatabaseMetadata(dbContext);
-            var allEntities = dbMetadata.GetEntityMetadatas().ToList();
+            var levelBuilder = new EntityLevelBuilder(QueryToRun);
+            EntityType.EntitiesWeWorkOn = levelBuilder.BuildEntityLevelsFromQuery();
 
 
             EntityType.EntitiesAlreadyCreated = new Dictionary<string, EntityType>();
+            SetMetaDataInLevls(dbContext);
 
+            var orderedList = EntityType.EntitiesWeWorkOn
+                .OrderByDescending(d => d.Level).ToList();
 
+            //var restrictionList = orderedList.Select(d =>
+            //    allEntities.FirstOrDefault(e => e.TableName.Equals(d.Name, StringComparison.OrdinalIgnoreCase)));
+            //var restrictedList = new List<EntityMetadata>();
+            //restrictedList.AddRange(restrictionList);
+            //var restrictedList2 = new List<EntityMetadata>
+            //{
+            //    allEntities.FirstOrDefault(d => d.EntityName == "Contact"),
+            //    allEntities.FirstOrDefault(d => d.EntityName == "Assignment"),
+            //    allEntities.FirstOrDefault(d => d.EntityName == "LaborCharge"),
+            //    allEntities.FirstOrDefault(d => d.EntityName == "WorkOrder"),
+            //};
 
-            var restrictedList = new List<EntityMetadata>
+            foreach(var e in orderedList)
             {
-                allEntities.FirstOrDefault(d => d.EntityName == "Contact"),
-                allEntities.FirstOrDefault(d => d.EntityName == "Assignment"),
-                allEntities.FirstOrDefault(d => d.EntityName == "LaborCharge"),
-                allEntities.FirstOrDefault(d => d.EntityName == "WorkOrder"),
-            };
-            var feeder = new OnlyRequiredEntitiesFeeder(restrictedList);
-            var entityToMap = feeder.GetNextEntity();
-            do
-            {
-                var tableType = new EntityType(entityToMap, 
-                    EntityType.EntitiesWeWorkOn.Single(d => d.Name == entityToMap.EntityName));
+                var tableType = new EntityType(e);
                 var newListType = new ListGraphType(tableType);
 
                 var newField = new FieldType
                 {
-                    Name = entityToMap.TableName,
+                    Name = e.EntityMetaData.TableName,
                     Type = typeof(ListGraphType<Entity>),
                     ResolvedType = newListType,
                     Resolver =
@@ -119,45 +97,28 @@ namespace GenericGraphQL
                 };
                 newField.SqlWhere(ApplyParameters);
                 AddField(newField);
-                entityToMap = feeder.GetNextEntity();
-            } while (entityToMap != null);
+            }
 
-            //do it again
-            //feeder = new EntityFeeder(allEntities);
-            //entityToMap = feeder.GetNextEntity();
-            //do
-            //{
-            //    var tableType = new EntityType(entityToMap);
-            //    var newListType = new ListGraphType(tableType);
-
-            //    var newField = new FieldType
-            //    {
-            //        Name = entityToMap.TableName,
-            //        Type = typeof(ListGraphType<Entity>),
-            //        ResolvedType = newListType,
-            //        Resolver =
-            //            new FuncFieldResolver<object, object>(Resolve), //new MyFieldResolver(metaTable, dbContext),
-            //        Arguments = new QueryArguments(
-            //            tableType.TableArgs
-            //        )
-            //    };
-            //    newField.SqlWhere(ApplyParameters);
-            //    AddField(newField);
-            //    entityToMap = feeder.GetNextEntity();
-            //} while (entityToMap != null);
-
-            //ResolveOneToManyColumnRelationships();
+            
         }
 
-        //private void ResolveOneToManyColumnRelationships()
-        //{
-        //    Fields.ToList().ForEach(d =>
-        //    {
-        //        var x = d.Arguments
-        //            .Where(a => a.Type == typeof(ListGraphType<EntityType>) && a.ResolvedType == null);
-        //        x.ToList().ForEach(a => a.ResolvedType = EntityType.EntitiesAlreadyCreated[a.Description]);
-        //    });
-        //}
+
+        private void SetMetaDataInLevls(DbContext context)
+        {
+            var dbMetadata = new DatabaseMetadata(context);
+            var allEntities = dbMetadata.GetEntityMetadatas().ToList();
+
+            var maxLevel = EntityType.EntitiesWeWorkOn.Max(d => d.Level);
+
+            for (var i = 1; i <= maxLevel; i++)
+            {
+                var currentLevel = EntityType.EntitiesWeWorkOn.Where(d => d.Level == i).ToList();
+                currentLevel.ForEach(d => d.EntityMetaData = allEntities.Single(e =>
+                    e.TableName.Equals(d.Name, StringComparison.OrdinalIgnoreCase)));
+            }
+
+        }   
+
 
         private void ApplyParameters(WhereBuilder where, IReadOnlyDictionary<string, object> args, IResolveFieldContext _, SqlTable __)
         {

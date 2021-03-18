@@ -8,7 +8,9 @@ namespace GenericGraphQL.Types
     public class EntityLevel
     {
         public string Name { get; set; }
+        public EntityLevel PreviousEntityLevel { get; set; }
         public int Level { get; set; }
+        public EntityMetadata EntityMetaData { get; set; }
     }
 
     public static class EntityExtensions

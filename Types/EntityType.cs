@@ -20,12 +20,12 @@ namespace GenericGraphQL.Types
 
         private EntityLevel _entityLevel;
         private SQLiteDialect _dialect;
-        public EntityType(EntityMetadata tableMetadata, EntityLevel level = null)
+        public EntityType(EntityLevel level)
         {
-            Name = tableMetadata.TableName;
+            Name = level.EntityMetaData.TableName;
             _entityLevel = level;
-            this.SqlTable(tableMetadata.TableName, "id");
-            foreach (var tableColumn in tableMetadata.Columns)
+            this.SqlTable(level.EntityMetaData.TableName, "id");
+            foreach (var tableColumn in level.EntityMetaData.Columns)
             {
                 InitGraphTableColumn(tableColumn, Name);
             }
@@ -36,9 +36,9 @@ namespace GenericGraphQL.Types
             TableArgs.Add(new QueryArgument<IntGraphType> { Name = "first" });
             TableArgs.Add(new QueryArgument<IntGraphType> { Name = "offset" });
             TableArgs.Add(new QueryArgument<StringGraphType> { Name = "includes" });
-            if (!EntitiesAlreadyCreated.ContainsKey(tableMetadata.TableName))
+            if (!EntitiesAlreadyCreated.ContainsKey(level.EntityMetaData.TableName))
             {
-                EntitiesAlreadyCreated.Add(tableMetadata.TableName, this);
+                EntitiesAlreadyCreated.Add(level.EntityMetaData.TableName, this);
             }
         }
 
