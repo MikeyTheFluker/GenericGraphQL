@@ -17,7 +17,7 @@ namespace GenericGraphQL.Types
     {
         public static int GetLevel(this List<EntityLevel> l, string name)
         {
-            var found = l.FirstOrDefault(d => d.Name == name);
+            var found = l.FirstOrDefault(d => d.EntityMetaData.EntityName == name);
             return found?.Level ?? 0;
         }
     }

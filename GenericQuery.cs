@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using GenericGraphQL.Helpers;
 using GenericGraphQL.Types;
 using GraphQL;
@@ -50,34 +51,19 @@ namespace GenericGraphQL
                 });
 
 
-            EntityType.EntitiesWeWorkOn = new List<EntityLevel>
-            {
-                //new EntityLevel{ Name = "Contact",Level = 3},
-                //new EntityLevel{ Name = "Assignment",Level = 2},
-                //new EntityLevel{ Name = "LaborCharge",Level = 2},
-                //new EntityLevel{ Name = "WorkOrder",Level = 1}
-            };
+            EntityType.EntitiesWeWorkOn = new List<EntityLevel>();
             var levelBuilder = new EntityLevelBuilder(QueryToRun);
             EntityType.EntitiesWeWorkOn = levelBuilder.BuildEntityLevelsFromQuery();
 
 
             EntityType.EntitiesAlreadyCreated = new Dictionary<string, EntityType>();
-            SetMetaDataInLevls(dbContext);
+
+            var metaConnector = new MetadataConnector(dbContext, EntityType.EntitiesWeWorkOn);
+            metaConnector.AttachMetaDataToEntities();
 
             var orderedList = EntityType.EntitiesWeWorkOn
                 .OrderByDescending(d => d.Level).ToList();
 
-            //var restrictionList = orderedList.Select(d =>
-            //    allEntities.FirstOrDefault(e => e.TableName.Equals(d.Name, StringComparison.OrdinalIgnoreCase)));
-            //var restrictedList = new List<EntityMetadata>();
-            //restrictedList.AddRange(restrictionList);
-            //var restrictedList2 = new List<EntityMetadata>
-            //{
-            //    allEntities.FirstOrDefault(d => d.EntityName == "Contact"),
-            //    allEntities.FirstOrDefault(d => d.EntityName == "Assignment"),
-            //    allEntities.FirstOrDefault(d => d.EntityName == "LaborCharge"),
-            //    allEntities.FirstOrDefault(d => d.EntityName == "WorkOrder"),
-            //};
 
             foreach(var e in orderedList)
             {
@@ -103,21 +89,8 @@ namespace GenericGraphQL
         }
 
 
-        private void SetMetaDataInLevls(DbContext context)
-        {
-            var dbMetadata = new DatabaseMetadata(context);
-            var allEntities = dbMetadata.GetEntityMetadatas().ToList();
 
-            var maxLevel = EntityType.EntitiesWeWorkOn.Max(d => d.Level);
 
-            for (var i = 1; i <= maxLevel; i++)
-            {
-                var currentLevel = EntityType.EntitiesWeWorkOn.Where(d => d.Level == i).ToList();
-                currentLevel.ForEach(d => d.EntityMetaData = allEntities.Single(e =>
-                    e.TableName.Equals(d.Name, StringComparison.OrdinalIgnoreCase)));
-            }
-
-        }   
 
 
         private void ApplyParameters(WhereBuilder where, IReadOnlyDictionary<string, object> args, IResolveFieldContext _, SqlTable __)

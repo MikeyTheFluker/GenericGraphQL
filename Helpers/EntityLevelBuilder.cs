@@ -22,15 +22,16 @@ namespace GenericGraphQL.Helpers
 
         public List<EntityLevel> BuildEntityLevelsFromQuery()
         {
-            var returned = new List<EntityLevel>();
-            var noWhiteSpace = Regex.Replace(_query, @"\s+", "");
+            var listOfLevels = new SortedList<int, EntityLevel>();
+            //var noWhiteSpace = Regex.Replace(_query, @"\s+", "");
             int level = 0;
             string previousWord = string.Empty;
             var currentWord = new StringBuilder();
             var spaceless = _query.Replace(" ", "");
 
-            var newRegex = new Regex("\\(.*\\)");
+            var removeParenthesis = new Regex("\\(.*\\)");
             EntityLevel newEntity = null;
+            int listCounter = 0;
             foreach (char c in spaceless)
             {
                 switch (c)
@@ -44,9 +45,16 @@ namespace GenericGraphQL.Helpers
                                 : current;
 
 
-                            var finalName = newRegex.Replace(newName, string.Empty);
-                            newEntity = new EntityLevel {Name = finalName, Level = level, PreviousEntityLevel = newEntity};
-                            returned.Add(newEntity);
+                            var finalName = removeParenthesis.Replace(newName, string.Empty);
+
+                            var previousLevel = level - 1;
+                            //Take all levels we've added, find something a level lower than what we've added.
+                            //Then most recent one, as they were added in order they were found in the query. Makes sense... kinda
+                            var parentLevel = listOfLevels.Where(d => d.Value.Level == previousLevel)
+                                .OrderByDescending(d => d.Key).FirstOrDefault();
+                            newEntity = new EntityLevel {Name = finalName, Level = level, PreviousEntityLevel = parentLevel.Value };
+                            listOfLevels.Add(listCounter, newEntity);
+                            listCounter++;
                         }
                         level++;
                         break;
@@ -68,7 +76,7 @@ namespace GenericGraphQL.Helpers
 
 
             }
-            return returned;
+            return listOfLevels.Select(d=> d.Value).ToList();
         }
 
         public List<EntityLevel> BuildEntityLevelsFromQuery2()

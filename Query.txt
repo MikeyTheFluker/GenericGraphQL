@@ -3,14 +3,15 @@
     number
     description
  
-    laborCharges(id: 1; this is crap){
+    laborCharges
+    {
         number
     }
 
     assignments{
         number
 
-        assignedBy
+        cAssignedby
         {
             number
         }
