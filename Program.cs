@@ -20,55 +20,55 @@ namespace GenericGraphQL
             var connectionToDb = await File.ReadAllTextAsync("connectionString.txt");
 
             var dbContext = ContextBuilder.BuildContext(connectionToDb);
-            var jm = new JoinMonsterExecuter(
-                new QueryToSqlConverter(new DefaultAliasGenerator()),
-                new SqlCompiler(new SQLiteDialect()),
-                new Hydrator()
-            );
-            var serviceProvider = new FuncServiceProvider(type =>
-            {
-                var swQuery = new GenericQuery(dbContext, jm);
+            //var jm = new JoinMonsterExecuter(
+            //    new QueryToSqlConverter(new DefaultAliasGenerator()),
+            //    new SqlCompiler(new SQLiteDialect()),
+            //    new Hydrator()
+            //);
+            //var serviceProvider = new FuncServiceProvider(type =>
+            //{
+            //    var swQuery = new GenericQuery(dbContext, jm);
 
-                if (type == typeof(GenericQuery))
-                    return swQuery;
+            //    if (type == typeof(GenericQuery))
+            //        return swQuery;
 
-                return Activator.CreateInstance(type);
-            });
+            //    return Activator.CreateInstance(type);
+            //});
 
-            var queryToRun = await File.ReadAllTextAsync("query.txt");
+            //var queryToRun = await File.ReadAllTextAsync("query.txt");
 
-            GenericQuery.QueryToRun = queryToRun;
+            //GenericQuery.QueryToRun = queryToRun;
 
-            var schema = new TargetDbSchema(serviceProvider);
-            Console.WriteLine("Built a schema");
+            //var schema = new TargetDbSchema(serviceProvider);
+            //Console.WriteLine("Built a schema");
 
             
  
 
-            Console.WriteLine("Running GraphQL Query" );
-            Console.WriteLine(queryToRun);
+            //Console.WriteLine("Running GraphQL Query" );
+            //Console.WriteLine(queryToRun);
 
-            await using var connection = new SqlConnection(connectionToDb);
+            //await using var connection = new SqlConnection(connectionToDb);
 
-            await connection.OpenAsync();
+            //await connection.OpenAsync();
 
-            var options = new ExecutionOptions
-            {
-                ThrowOnUnhandledException = true,
-                Schema = schema,
-                Query = queryToRun,
-                UserContext = new Dictionary<string, object>
-                {
-                    {nameof(IDbConnection), connection}
-                }
-            };
-            var result = await new DocumentExecuter().ExecuteAsync(
-                options
-            ).ConfigureAwait(true);
+            //var options = new ExecutionOptions
+            //{
+            //    ThrowOnUnhandledException = true,
+            //    Schema = schema,
+            //    Query = queryToRun,
+            //    UserContext = new Dictionary<string, object>
+            //    {
+            //        {nameof(IDbConnection), connection}
+            //    }
+            //};
+            //var result = await new DocumentExecuter().ExecuteAsync(
+            //    options
+            //).ConfigureAwait(true);
 
-            //data.EnrichWithApolloTracing(start);
-            Console.WriteLine("Json returned to caller:");
-            var writer = new DocumentWriter(true);
+            ////data.EnrichWithApolloTracing(start);
+            //Console.WriteLine("Json returned to caller:");
+            //var writer = new DocumentWriter(true);
 
             Console.WriteLine(await writer.WriteToStringAsync(result));
         }
